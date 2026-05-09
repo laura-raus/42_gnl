@@ -6,7 +6,7 @@
 /*   By: laraus <laraus@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:35:06 by laraus            #+#    #+#             */
-/*   Updated: 2026/05/06 17:35:07 by laraus           ###   ########.fr       */
+/*   Updated: 2026/05/09 18:38:20 by laraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,10 +25,8 @@
 # include <unistd.h>
 
 char	*get_next_line(int fd);
-char	*ft_strchr(char *s, int c);
-char	*ft_strdup(char *s);
-char	*ft_strjoin_free(char *s1, char *s2);
-size_t	ft_strlen(char *s);
-char	*ft_substr(char *s, unsigned int start, size_t len);
+size_t	ft_strlen(const char *s);
+char	*ft_strjoin(char *s1, char *s2);
+void	ft_buffflusher(char *buff);
 
 #endif

@@ -1,16 +1,31 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line_utils.c                              :+:      :+:    :+:   */
+/*   get_next_line_utils_bonus.c                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: laraus <laraus@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/06 17:29:37 by laraus            #+#    #+#             */
-/*   Updated: 2026/05/08 20:44:53 by laraus           ###   ########.fr       */
+/*   Created: 2026/05/06 17:35:12 by laraus            #+#    #+#             */
+/*   Updated: 2026/05/09 18:36:57 by laraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "get_next_line.h"
+#include "get_next_line_bonus.h"
+
+static void	copy_buffer(char *str, char *s2, size_t i)
+{
+	size_t	j;
+	size_t	len;
+
+	j = 0;
+	len = ft_strlen(s2);
+	while (s2[j] && j < len)
+	{
+		str[i + j] = s2[j];
+		j++;
+	}
+	str[i + j] = '\0';
+}
 
 size_t	ft_strlen(const char *s)
 {
@@ -32,7 +47,6 @@ char	*ft_strjoin(char *s1, char *s2)
 {
 	char	*str;
 	size_t	i;
-	size_t	j;
 
 	str = malloc(ft_strlen(s1) + ft_strlen(s2) + 1);
 	if (!str)
@@ -46,13 +60,7 @@ char	*ft_strjoin(char *s1, char *s2)
 		str[i] = s1[i];
 		i++;
 	}
-	j = 0;
-	while (s2[j] && j < ft_strlen(s2))
-	{
-		str[i + j] = s2[j];
-		j++;
-	}
-	str[i + j] = '\0';
+	copy_buffer(str, s2, i);
 	free(s1);
 	return (str);
 }

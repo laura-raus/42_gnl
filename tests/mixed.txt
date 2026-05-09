@@ -1,4 +1,0 @@
-abc
-
-hello
-last line no newline
