@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: laraus <laraus@student.42.fr>              +#+  +:+       +#+         #
+#    By: laraus <laraus@student.42lisboa.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2026/05/06 17:26:50 by laraus            #+#    #+#              #
-#    Updated: 2026/05/09 16:17:45 by laraus           ###   ########.fr        #
+#    Created: 2026/05/10 14:05:43 by laraus            #+#    #+#              #
+#    Updated: 2026/05/10 16:47:02 by laraus           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -38,8 +38,11 @@ TEST_BONUS = $(TEST_DIR)main_bonus.c
 
 OBJS = $(MANDATORY:.c=.o)
 BONUS_OBJS = $(BONUS:.c=.o)
+TEST_OBJS = $(TEST_MANDATORY:.c=.o)
+TEST_BONUS_OBJS = $(TEST_BONUS:.c=.o)
 
-all: test
+all: $(NAME)
+	@echo "Build complete. Run 'make test' to execute tests."
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(BUFFER_FLAG) $(INCLUDES) -c $< -o $@
@@ -47,29 +50,20 @@ all: test
 generate_tests:
 	BUFFER_SIZE=$(BUFFER_SIZE) ./tests/scripts/generate_tests.sh
 
+$(NAME): $(OBJS) $(TEST_OBJS)
+	$(CC) $(CFLAGS) $(BUFFER_FLAG) $(INCLUDES) $(TEST_OBJS) $(OBJS) -o $(NAME)
+
+$(BONUS_NAME): $(BONUS_OBJS) $(TEST_BONUS_OBJS)
+	$(CC) $(CFLAGS) $(BUFFER_FLAG) $(INCLUDES) $(TEST_BONUS_OBJS) $(BONUS_OBJS) -o $(BONUS_NAME)
+
 test: generate_tests $(NAME)
 	./$(NAME)
 
-$(NAME): $(OBJS) $(TEST_MANDATORY)
-	$(CC) $(CFLAGS) $(BUFFER_FLAG) $(INCLUDES) \
-		$(TEST_MANDATORY) $(OBJS) -o $(NAME)
+bonus: $(BONUS_NAME)
+	@echo "Bonus build complete. Run 'make test_bonus' to execute tests."
 
-bonus: generate_tests $(BONUS_NAME)
+test_bonus: generate_tests $(BONUS_NAME)
 	./$(BONUS_NAME)
-
-$(BONUS_NAME): $(BONUS_OBJS) $(TEST_BONUS)
-	$(CC) $(CFLAGS) $(BUFFER_FLAG) $(INCLUDES) \
-		$(TEST_BONUS) $(BONUS_OBJS) -o $(BONUS_NAME)
-
-clean:
-	rm -f $(OBJS) $(BONUS_OBJS)
-
-clean_tests:
-	rm -f $(NAME) $(BONUS_NAME)
-
-fclean: clean clean_tests
-
-re: fclean all
 
 valgrind: generate_tests $(NAME)
 	valgrind --leak-check=full --show-leak-kinds=all ./$(NAME)
@@ -77,5 +71,12 @@ valgrind: generate_tests $(NAME)
 valgrind_bonus: generate_tests $(BONUS_NAME)
 	valgrind --leak-check=full --show-leak-kinds=all ./$(BONUS_NAME)
 
-.PHONY: all generate_tests test bonus clean clean_tests fclean re \
-	valgrind valgrind_bonus
+clean:
+	rm -f $(OBJS) $(BONUS_OBJS) $(TEST_OBJS) $(TEST_BONUS_OBJS)
+
+fclean: clean
+	rm -f $(NAME) $(BONUS_NAME)
+
+re: fclean all
+
+.PHONY: all generate_tests test bonus test_bonus clean fclean re valgrind valgrind_bonus

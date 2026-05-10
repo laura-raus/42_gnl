@@ -6,16 +6,13 @@
 
 `get_next_line` is a C function that reads and returns one line at a time from a file descriptor.
 
-The project focuses on one of the most important concepts in low-level programming:
+The project focuses on low-level programming concepts including:
 
-* persistent state using static variables
-* dynamic memory management
-* incremental reading with `read()`
-* string manipulation without the standard library
-* handling partial data across multiple function calls
-
-Unlike higher-level languages, C does not provide built-in line readers.
-This project rebuilds that functionality manually while respecting strict memory and style constraints.
+- persistent state using static variables
+- dynamic memory management
+- incremental reading with the `read()` system call
+- string manipulation without the standard library
+- handling partial data across multiple function calls
 
 The function prototype is:
 
@@ -23,259 +20,206 @@ The function prototype is:
 char	*get_next_line(int fd);
 ```
 
-Each call returns:
+Each call returns the next line from the file descriptor (including the trailing `\n` if present), or `NULL` when EOF or an error is reached.
 
-* the next line from the file descriptor
-* including the trailing `\n` if it exists
-* or `NULL` when EOF or an error is reached
+## Algorithm Design and Justification
 
+### Persistent Storage
 
+The core challenge of `get_next_line` is preserving data between function calls. When `read()` fetches more bytes than needed for a single line, the excess must be retained for the next call.
 
-# Project Goals
+The implementation uses a `static` buffer:
 
-This project was designed to teach:
-
-* how static variables persist between function calls
-* how buffered reading works internally
-* how to safely manage heap allocations
-* how to avoid memory leaks
-* how to split logic into maintainable helper functions
-* how operating systems expose file reading through file descriptors
-
-The real difficulty of the project is not the algorithm itself, but ownership and lifetime of memory.
-
-Questions constantly asked during development included:
-
-* Who owns this allocation?
-* When should this pointer be freed?
-* What happens if `malloc` fails?
-* What happens if `read` returns `-1`?
-* What happens when EOF is reached without `\n`?
-* What if `BUFFER_SIZE` is `1`?
-* What if the line is larger than the buffer?
-
-
-
-# How It Works
-
-The implementation follows this general flow:
-
-```text
-read()
-↓
-append to stash
-↓
-newline found?
-↓
-extract line
-↓
-preserve leftovers
-↓
-repeat
+```c
+static char buff[BUFFER_SIZE + 1];
 ```
 
-A static variable is used to preserve unread leftovers between calls.
+This buffer retains its content across invocations without requiring heap allocation. The buffer size is fixed at compile time via `BUFFER_SIZE`, making dynamic allocation unnecessary.
 
-Example:
+### Static vs. Heap Allocation
 
-```text
-File:
-Hello\nWorld\n
+| Approach | Compliant | Why |
+|----------|-----------|-----|
+| `static char buff[BUFFER_SIZE + 1]` | ✅ Correct | Persistent, fixed size, no allocation overhead. The buffer size is known at compile time. |
+| `static char *buff = malloc(BUFFER_SIZE + 1)` | ❌ Fails project requirements | Unnecessary heap allocation. The pointer is static but the memory doesn't need to be on the heap. Adds failure points (malloc can return NULL) with zero benefit. |
+| `static char *buff[BUFFER_SIZE + 1]` | ❌ Wrong | Array of uninitialized pointers, not a character buffer. Causes undefined behavior. |
+| Heap allocation without static | ❌ Fails | Data lost between function calls. Impossible to return the next line correctly. |
+
+**Why heap for the buffer fails the project scope:**
+
+The subject requires persistent storage between calls. Heap allocation without `static` loses data. A `static` pointer to heap memory works technically but violates the spirit of the project because:
+
+1. The buffer size `BUFFER_SIZE` is fixed at compile time - no dynamic sizing needed
+2. `malloc` introduces unnecessary failure points
+3. The subject expects students to understand `static` storage duration
+4. Heap allocation adds complexity with no requirement or benefit
+
+The heap is correctly used only for the returned `char *line`, whose length cannot be known until reading completes.
+
+### Line Extraction Flow
+
+1. Check if static buffer contains data from previous calls
+2. If buffer is empty, call `read()` to fill it
+3. Extract characters until newline or EOF
+4. Join extracted characters into a heap-allocated line
+5. Remove consumed portion from static buffer
+6. Return line (caller responsible for freeing)
+
+## Bonus: Multiple File Descriptors
+
+The bonus requirement extends `get_next_line` to handle multiple file descriptors simultaneously without losing track of each read state.
+
+### Implementation
+
+The mandatory single static buffer becomes a 2D array:
+
+```c
+static char buff[FD_MAX][BUFFER_SIZE + 1];
 ```
 
-If `BUFFER_SIZE = 4`, reads may happen like:
+Each file descriptor receives its own dedicated buffer, preserving independent read states without global variables.
 
-```text
-"Hell"
-"o\nWo"
-"rld\n"
+## Repository Structure
+
 ```
-
-After detecting `\n`, the function returns:
-
-```text
-"Hello\n"
-```
-
-while preserving:
-
-```text
-"Wo"
-```
-
-for the next function call.
-
-This persistent storage mechanism is the core concept of the project.
-
-
-
-# File Structure
-
-```text
 get_next_line/
-├── get_next_line.c
-├── get_next_line_utils.c
-├── get_next_line.h
 ├── Makefile
-└── README.md
+├── README.md
+├── .gitignore
+├── docs/
+│   └── en.subject.pdf
+├── includes/
+│   ├── get_next_line.h
+│   └── get_next_line_bonus.h
+├── srcs/
+│   ├── get_next_line.c
+│   ├── get_next_line_utils.c
+│   └── bonus/
+│       ├── get_next_line_bonus.c
+│       └── get_next_line_utils_bonus.c
+└── tests/
+    ├── README.md
+    ├── main_gnl.c
+    ├── main_bonus.c
+    ├── files/
+    └── scripts/
 ```
 
+### Source Organization
 
+| Directory | Contents |
+|-----------|----------|
+| `includes/` | Header files with function prototypes and type definitions |
+| `srcs/` | Mandatory source files |
+| `srcs/bonus/` | Bonus source files (multi-file descriptor support) |
+| `tests/` | Test suite, test files, and generation scripts |
+| `docs/` | Project subject PDF |
 
-# Function Overview
+## Instructions
 
-## Main Functions
-
-### `get_next_line`
-
-Public function responsible for:
-
-* validating the file descriptor
-* reading data
-* returning one line at a time
-* preserving remaining data between calls
-
-### `cut_line`
-
-Extracts the next line from the saved data and updates the remaining content.
-
-
-
-## Utility Functions
-
-### `ft_strlen`
-
-Calculates string length.
-
-### `ft_strchr`
-
-Searches for a character inside a string.
-
-Used mainly to detect `\n`.
-
-### `ft_strdup`
-
-Duplicates a string into newly allocated memory.
-
-### `ft_strjoin`
-
-Concatenates two strings while preserving dynamic memory correctness.
-
-
-
-# Compilation
-
-Compile manually:
+### Compilation and Testing
 
 ```bash
-cc -Wall -Wextra -Werror -D BUFFER_SIZE=42 \
-	get_next_line.c get_next_line_utils.c main.c
+make                # Builds mandatory executable
+make test           # Builds (if needed) and runs mandatory tests
+make bonus          # Builds bonus executable
+make test_bonus     # Builds (if needed) and runs bonus tests
+make valgrind       # Runs mandatory tests with memory leak detection
+make valgrind_bonus # Runs bonus tests with Valgrind
+make clean          # Removes object files
+make fclean         # Removes object files and executables
+make re             # Rebuilds from scratch
 ```
 
-Or use the Makefile:
+To specify a custom buffer size:
 
 ```bash
-make
+make test BUFFER_SIZE=1
+make test_bonus BUFFER_SIZE=9999
 ```
 
+### Makefile Targets
 
+| Target | Description |
+|--------|-------------|
+| `make` or `make all` | Builds mandatory executable only |
+| `make test` | Builds (if needed) and runs mandatory tests |
+| `make bonus` | Builds bonus executable only |
+| `make test_bonus` | Builds (if needed) and runs bonus tests |
+| `make valgrind` | Runs mandatory tests with Valgrind |
+| `make valgrind_bonus` | Runs bonus tests with Valgrind |
+| `make clean` | Removes object files |
+| `make fclean` | Removes object files and executables |
+| `make re` | Rebuilds from scratch |
 
-# Testing
+### Usage Example
 
-Important edge cases tested:
+```c
+#include "get_next_line.h"
+#include <fcntl.h>
 
-* empty file
-* invalid file descriptor
-* file ending without `\n`
-* multiple consecutive `\n`
-* very small `BUFFER_SIZE`
-* very large `BUFFER_SIZE`
-* stdin reading
-* large files
-* long single-line files
+int main(void)
+{
+    int fd = open("file.txt", O_RDONLY);
+    char *line;
 
-Memory leak testing:
-
-```bash
-valgrind --leak-check=full ./a.out
+    while ((line = get_next_line(fd)) != NULL)
+    {
+        printf("%s", line);
+        free(line);
+    }
+    close(fd);
+    return (0);
+}
 ```
 
+## Testing
 
+Comprehensive tests are located in the `tests/` directory. See `tests/README.md` for detailed test documentation.
 
-# Challenges Encountered
+Test coverage includes:
 
-The most difficult part of the project was not reading files, but correctly handling memory ownership and leftover data.
+- empty files
+- single characters (with and without newline)
+- multiple lines
+- only newline characters
+- lines exactly matching buffer boundaries (BUFFER_SIZE, BUFFER_SIZE±1)
+- long lines (10,000+ characters)
+- invalid file descriptors
+- standard input reading
+- multiple interleaved file descriptors (bonus)
+- large FD limit stress test (100 FDs, bonus)
 
-Several implementation approaches were explored:
+## Resources
 
-* large multi-helper architectures
-* compact minimal-function versions
-* substring-based extraction
-* direct partial duplication approaches
+### Documentation
 
-Tradeoffs between readability, modularity, Norminette compliance, and allocation complexity became an important part of the learning process.
+- Linux man pages: [https://man7.org/linux/man-pages/](https://man7.org/linux/man-pages/)
+- `read(2)` manual
+- `malloc(3)` / `free(3)` manual
+- GNU Make documentation: [https://www.gnu.org/software/make/manual/](https://www.gnu.org/software/make/manual/)
+- C language and libc references: [https://en.cppreference.com/w/c](https://en.cppreference.com/w/c)
 
+### References
 
+- 42 project subject (included in `docs/`)
+- C standard library documentation
 
-# Technical Notes
+## AI Usage
 
-## Allowed Functions
+AI tools were used for:
 
-Only the following external functions were allowed:
+- conceptual clarification of static variable behavior
+- debugging assistance for edge cases
+- memory management analysis
+- boundary condition review (BUFFER_SIZE extremes)
+- test case generation
+- documentation structure refinement
 
-* `read`
-* `malloc`
-* `free`
+All implementation, integration, testing, and validation were completed manually.
 
-## Forbidden
+## Notes
 
-* libft
-* global variables
-* `lseek`
+Additional testing details are available in `tests/README.md`.
 
-
-
-# AI Usage
-
-AI was used as a supplementary learning and review tool during development.
-
-It was primarily used for:
-
-* discussing architecture tradeoffs
-* reviewing memory management logic
-* understanding static variable behavior
-* exploring different helper-function organizations
-* generating edge cases and testing ideas
-- clarification of memory behavior
-- understanding edge cases
-- README structure assistance
-
-All final implementation decisions, debugging, testing, and adaptation to 42 Norm constraints were manually reviewed and adjusted.
-
-# Lessons
-
-This project reinforced several important low-level programming concepts:
-
-* memory ownership matters
-* persistent state is difficult to manage safely
-* small helper functions improve debugging
-* edge cases dominate systems programming
-* reading incrementally is fundamentally different from processing full data at once
-
-It also highlighted how much infrastructure higher-level languages hide from developers.
-
-# Resources
-
-* 42 subject PDF
-* Linux `read(2)` manual
-* `man 2 read`
-* `man 3 malloc`
-* GNU C documentation
-* Valgrind documentation
-* 42 peer discussions and evaluations
-
-
-All code was reviewed, tested, and adapted manually.
-
-⚠️ This project was completed as part of 42 School.  
-It is provided for portfolio/review/learning purposes only. Please do not copy for coursework.
+This repository was developed as part of the 42 curriculum and is maintained for educational and portfolio purposes.

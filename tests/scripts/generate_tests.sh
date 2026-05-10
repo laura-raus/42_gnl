@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    generate_tests.sh                                  :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: laraus <laraus@student.42.fr>              +#+  +:+       +#+         #
+#    By: laraus <laraus@student.42lisboa.com>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/05/09 15:54:31 by laraus            #+#    #+#              #
-#    Updated: 2026/05/09 16:17:32 by laraus           ###   ########.fr        #
+#    Updated: 2026/05/10 16:47:12 by laraus           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -27,6 +27,7 @@ printf "hello\n" > tests/files/one_newline.txt
 printf "hello\nworld\n42\n" > tests/files/multiple_lines.txt
 printf "\n\n\n\n" > tests/files/only_newlines.txt
 printf "first line\n\nsecond line\nthird line without newline" > tests/files/mixed.txt
+printf "Single line for FD limit test\n" > tests/files/one_line.txt
 
 python3 - << EOF
 from pathlib import Path

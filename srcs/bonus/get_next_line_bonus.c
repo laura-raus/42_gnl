@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   get_next_line_bonus.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: laraus <laraus@student.42.fr>              +#+  +:+       +#+        */
+/*   By: laraus <laraus@student.42lisboa.com>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:35:30 by laraus            #+#    #+#             */
-/*   Updated: 2026/05/09 18:38:18 by laraus           ###   ########.fr       */
+/*   Updated: 2026/05/10 17:09:22 by laraus           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,20 +29,20 @@ char	*get_next_line(int fd)
 	char		*line;
 	int			bytes;
 
-	if (fd < 0 || BUFFER_SIZE <= 0)
+	if (fd < 0 || fd >= FD_MAX || BUFFER_SIZE <= 0)
 		return (NULL);
 	line = NULL;
 	bytes = 1;
 	while (bytes > 0)
 	{
-		if (!buff[0])
-			bytes = fill_buffer(fd, buff);
+		if (!buff[fd][0])
+			bytes = fill_buffer(fd, buff[fd]);
 		if (bytes <= 0)
 			break ;
-		line = ft_strjoin(line, buff);
+		line = ft_strjoin(line, buff[fd]);
 		if (!line)
 			return (NULL);
-		ft_buffflusher(buff);
+		ft_buffflusher(buff[fd]);
 		if (line[ft_strlen(line) - 1] == '\n')
 			return (line);
 	}
